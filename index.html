@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Türkiye Barış Süreci 2024–2026 Kronolojisi</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="hero">
+      <div class="hero-inner">
+        <p class="hero-eyebrow">Belgesel Kronoloji</p>
+        <h1 class="hero-title">Türkiye <span class="hero-gradient">Barış Süreci</span></h1>
+        <p class="hero-subtitle">2024 – 2026</p>
+        <div class="hero-stats" id="heroStats"></div>
+      </div>
+    </header>
+
+    <div class="sticky-bar" id="stickyBar">
+      <div class="sticky-inner">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 20 20" fill="none">
+            <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M13 13l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Olay, kişi veya kurum ara…" autocomplete="off" />
+          <button class="clear-btn" id="clearBtn" aria-label="Temizle">✕</button>
+        </div>
+        <div class="filters" id="filterBtns"></div>
+      </div>
+    </div>
+
+    <main class="timeline-outer" id="tlOuter">
+      <svg class="connections-svg" id="connSvg" aria-hidden="true"></svg>
+      <div class="timeline-inner" id="tlInner"></div>
+    </main>
+
+    <footer class="site-footer">
+      <p>Veriler kamuya açık kaynaklara dayanmaktadır · <span id="footerCount"></span> olay belgelenmiştir</p>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
