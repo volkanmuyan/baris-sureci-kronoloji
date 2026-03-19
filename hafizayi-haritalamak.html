@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapping Memory — Hafızayı Haritalamak — Bîranîna Nexşekirî</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1c1c1c;
+      --border: #252525;
+      --text: #e2e2e2;
+      --text-muted: #666;
+      --accent: #c8a96e;
+      --accent2: #7ab3cc;
+      --red: #c86e6e;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+    /* ── HEADER ── */
+    .header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 52px;
+      background: rgba(10,10,10,0.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 1000;
+    }
+    .header-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .tabs { display: flex; gap: 2px; }
+    .tab-btn {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-family: inherit;
+      padding: 5px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .tab-btn:hover { color: var(--text); border-color: var(--border); }
+    .tab-btn.active { color: var(--accent); border-color: var(--accent); }
+    .lang-switch {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .lang-btn {
+      background: none;
+      border: none;
+      border-right: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 10px;
+      font-family: inherit;
+      padding: 5px 9px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.05em;
+    }
+    .lang-btn:last-child { border-right: none; }
+    .lang-btn:hover { background: var(--surface2); color: var(--text); }
+    .lang-btn.active { background: var(--surface2); color: var(--accent); }
+    /* ── MAIN ── */
+    .main { padding-top: 52px; height: 100vh; }
+    /* ── MAPS ── */
+    .maps-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      height: calc(100vh - 52px);
+    }
+    .map-section {
+      position: relative;
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+    .map-section:last-child { border-right: none; }
+    .map-label {
+      position: absolute;
+      top: 14px; left: 14px;
+      z-index: 500;
+      background: rgba(10,10,10,0.88);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 3px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      pointer-events: none;
+    }
+    .map-legend {
+      position: absolute;
+      bottom: 28px; left: 14px;
+      z-index: 500;
+      background: rgba(10,10,10,0.88);
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      border-radius: 3px;
+      pointer-events: none;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .legend-item:last-child { margin-bottom: 0; }
+    .legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      flex-shrink: 0;
+    }
+    .legend-person {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid var(--accent2);
+      flex-shrink: 0;
+    }
+    /* ── NARRATIVE PANEL ── */
+    .narrative-overlay {
+      position: fixed;
+      top: 52px; bottom: 0; right: 0;
+      width: 360px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      z-index: 800;
+      transform: translateX(100%);
+      transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+      display: flex;
+      flex-direction: column;
+    }
+    .narrative-overlay.open { transform: translateX(0); }
+    .narrative-header {
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .narrative-type {
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+    .narrative-name {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .narrative-date {
+      font-size: 11px;
+      color: var(--accent);
+      margin-top: 3px;
+    }
+    .close-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 26px; height: 26px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .close-btn:hover { color: var(--text); border-color: var(--text-muted); }
+    .narrative-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+    }
+    .narrative-text {
+      font-size: 13.5px;
+      line-height: 1.85;
+      color: #bbb;
+    }
+    .narrative-quote {
+      border-left: 2px solid var(--accent);
+      padding: 0 0 0 14px;
+      margin: 16px 0;
+      font-style: italic;
+      color: #999;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .narrative-footer {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+    }
+    .listen-btn {
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 11px;
+      padding: 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: all 0.2s;
+      letter-spacing: 0.04em;
+    }
+    .listen-btn:hover { color: var(--text); border-color: var(--text-muted); }
+    .listen-btn.playing { color: var(--accent); border-color: var(--accent); background: rgba(200,169,110,0.05); }
+    /* ── CUSTOM MARKERS ── */
+    .m-event {
+      width: 10px; height: 10px;
+      background: var(--red);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(200,110,110,0.2);
+      transition: transform 0.15s;
+    }
+    .m-event:hover { transform: scale(1.6); }
+    .m-event.active {
+      transform: scale(1.4);
+      box-shadow: 0 0 0 6px rgba(200,110,110,0.15);
+    }
+    .m-person {
+      width: 12px; height: 12px;
+      background: #d4d4d4;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(212,212,212,0.18);
+      transition: transform 0.15s;
+    }
+    .m-person:hover { transform: scale(1.6); }
+    .m-person.active {
+      transform: scale(1.4);
+      box-shadow: 0 0 0 6px rgba(212,212,212,0.12);
+    }
+    /* ── LEAFLET OVERRIDES ── */
+    .leaflet-control-attribution {
+      background: rgba(10,10,10,0.75) !important;
+      color: #444 !important;
+      font-size: 9px !important;
+    }
+    .leaflet-control-attribution a { color: #555 !important; }
+    .leaflet-control-zoom a {
+      background: var(--surface) !important;
+      color: var(--text-muted) !important;
+      border-color: var(--border) !important;
+    }
+    .leaflet-control-zoom a:hover {
+      background: var(--surface2) !important;
+      color: var(--text) !important;
+    }
+    .leaflet-popup-content-wrapper {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 4px !important;
+      color: var(--text) !important;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.6) !important;
+    }
+    .leaflet-popup-tip { background: var(--surface) !important; }
+    .leaflet-popup-content {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 12px !important;
+      color: var(--text) !important;
+      margin: 10px 14px !important;
+    }
+    .dark-tooltip {
+      background: rgba(10,10,10,0.9) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text) !important;
+      font-size: 11px !important;
+      font-family: 'Inter', sans-serif !important;
+      padding: 4px 8px !important;
+      border-radius: 3px !important;
+      box-shadow: none !important;
+    }
+    .dark-tooltip::before { display: none !important; }
+    /* ── ABOUT ── */
+    .about-container {
+      height: calc(100vh - 52px);
+      overflow-y: auto;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
+    .about-section { margin-bottom: 44px; }
+    .about-label {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .about-title {
+      font-size: 26px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 20px;
+    }
+    .about-section p {
+      font-size: 14px;
+      line-height: 1.85;
+      color: #999;
+      margin-bottom: 14px;
+    }
+    .about-divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+    .ref-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .ref-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px;
+    }
+    .ref-card h4 { font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+    .ref-card p { font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.6; }
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    @keyframes pulse-red {
+      0%   { box-shadow: 0 0 0 0 rgba(200,110,110,0.5); }
+      70%  { box-shadow: 0 0 0 10px rgba(200,110,110,0); }
+      100% { box-shadow: 0 0 0 0 rgba(200,110,110,0); }
+    }
+    @keyframes pulse-white {
+      0%   { box-shadow: 0 0 0 0 rgba(212,212,212,0.5); }
+      70%  { box-shadow: 0 0 0 10px rgba(212,212,212,0); }
+      100% { box-shadow: 0 0 0 0 rgba(212,212,212,0); }
+    }
+    .m-event.pulsing  { animation: pulse-red   2s infinite; }
+    .m-person.pulsing { animation: pulse-white 2.4s infinite; }
+    @media (max-width: 768px) {
+      .maps-container { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+      .narrative-overlay { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── TRANSLATIONS ─────────────────────────────────────
+const T = {
+  en: {
+    title: "Mapping Memory",
+    tab_maps: "Maps",
+    tab_about: "About",
+    belfast: "Belfast",
+    sur: "Sur · Diyarbakır",
+    type_event: "Historical Event",
+    type_person: "Personal Testimony",
+    listen: "Listen",
+    stop: "Stop",
+    close: "Close",
+    legend_event: "Historical event",
+    legend_person: "Personal testimony",
+  },
+  tr: {
+    title: "Hafızayı Haritalamak",
+    tab_maps: "Haritalar",
+    tab_about: "Proje Hakkında",
+    belfast: "Belfast",
+    sur: "Sur · Diyarbakır",
+    type_event: "Tarihsel Olay",
+    type_person: "Kişisel Tanıklık",
+    listen: "Dinle",
+    stop: "Durdur",
+    close: "Kapat",
+    legend_event: "Tarihsel olay",
+    legend_person: "Kişisel tanıklık",
+  },
+  ku: {
+    title: "Nexşekirina Bîranînê",
+    tab_maps: "Nexşe",
+    tab_about: "Der barê Projeyê",
+    belfast: "Belfast",
+    sur: "Sur · Diyarbekir",
+    type_event: "Bûyera Dîrokî",
+    type_person: "Şahidiya Kesane",
+    listen: "Guhdarî bike",
+    stop: "Rawestîne",
+    close: "Bigire",
+    legend_event: "Bûyera dîrokî",
+    legend_person: "Şahidiya kesane",
+  }
+};
+
+// ─── BELFAST DATA ─────────────────────────────────────
+const BELFAST = [
+  {
+    id:"b1", type:"event", lat:54.5980, lng:-5.9620,
+    en:{
+      name:"Burning of Bombay Street",
+      date:"14–15 August 1969",
+      text:"On the night of 14–15 August 1969, Bombay Street and the surrounding Catholic enclave of Clonard were attacked by loyalist mobs and members of the Ulster Special Constabulary. Houses were set ablaze and residents fled into the night with what they could carry. The violence marked a turning point: it accelerated the deployment of British troops and deepened the sectarian geography of West Belfast. By morning, entire streets had been reduced to rubble and ash, leaving hundreds homeless.",
+      quote:"We grabbed what we could carry and ran. The sky was orange over Clonard. I never went back to Bombay Street."
+    },
+    tr:{
+      name:"Bombay Sokağı'nın Yakılması",
+      date:"14–15 Ağustos 1969",
+      text:"14-15 Ağustos 1969 gecesi Bombay Sokağı ve çevresindeki Clonard Katolik mahallesi, loyalist gruplar ve Ulster Özel Jandarması üyeleri tarafından saldırıya uğradı. Evler ateşe verildi, sakinler karanlıkta kaçmak zorunda kaldı. Bu şiddet olayı bir dönüm noktası oldu: İngiliz kuvvetlerinin bölgeye konuşlandırılmasını hızlandırdı ve Batı Belfast'ın mezhepsel coğrafyasını pekiştirdi. Sabaha gelindiğinde sokaklar enkaza dönmüştü ve yüzlerce kişi evsiz kalmıştı.",
+      quote:"Taşıyabileceklerimizi alıp koştuk. Clonard'ın üzerindeki gökyüzü turuncuydu. Bombay Sokağı'na bir daha dönmedim."
+    },
+    ku:{
+      name:"Şewtandina Kolana Bombay",
+      date:"14–15 Tebax 1969",
+      text:"Di şeva 14-15 Tebaxê 1969 de, kolana Bombay û jîngeha Katolîk a Clonard ji aliyê koman û endamên Polîsa Taybetî ya Ulster ve hat êrîşkirin. Xanî hatin şewitandin û niştecîh di şevê de revîyan. Ev tundî di nakokiyê de nuqteya zivirînê bû û cografyaya mezhebî ya rojavayê Belfastê kûrtir kir.",
+      quote:"Me tiştên ku dikaribûn bihêlin girtin û reviyan. Ezman li ser Clonardê pirteqalî bû. Min careke din negera kolana Bombay."
+    }
+  },
+  {
+    id:"b2", type:"event", lat:54.6020, lng:-5.9380,
+    en:{
+      name:"Bloody Friday",
+      date:"21 July 1972",
+      text:"On 21 July 1972, the Provisional IRA detonated 22 bombs across Belfast within 80 minutes, killing nine people and injuring 130. The attacks targeted commercial and infrastructure sites but caused mass civilian casualties. The sheer number and speed of the explosions overwhelmed emergency services. Bloody Friday remains one of the most psychologically devastating single days of the Troubles — not because of its death toll alone, but because of the helplessness it induced in a city that had learned, reluctantly, to live alongside violence.",
+      quote:"The explosions were coming from every direction at once. You didn't know where to run. There was nowhere safe."
+    },
+    tr:{
+      name:"Kanlı Cuma",
+      date:"21 Temmuz 1972",
+      text:"21 Temmuz 1972'de Geçici IRA, 80 dakika içinde Belfast genelinde 22 bomba patlattı; 9 kişi öldü, 130 kişi yaralandı. Saldırılar ticari ve altyapı hedeflerini hedef almış olsa da ağır sivil kayıplara yol açtı. Patlama sayısı ve hızı acil servisleri felç etti. Kanlı Cuma, Troubles'ın psikolojik açıdan en yıkıcı günlerinden biri olarak tarihe geçti.",
+      quote:"Patlamalar aynı anda her yönden geliyordu. Nereye kaçacağını bilemiyordun. Güvenli bir yer yoktu."
+    },
+    ku:{
+      name:"Îniya Xwînî",
+      date:"21 Tîrmeh 1972",
+      text:"Di 21ê Tîrmehê 1972 de, IRA Provîzyonel di nav 80 deqîqeyan de 22 bombe li seranserê Belfast teqand, neh kes mir û 130 kes birîndar bûn. Îna Xwînî yek ji rojên herî wêranker ên psîkolojîk ên Troubles ma.",
+      quote:"Teqîn di heman demê de ji her alî dihatin. Mirov nizanibû bê kîjan alî bireve. Cihekî ewle tunebû."
+    }
+  },
+  {
+    id:"b3", type:"event", lat:54.5895, lng:-5.9510,
+    en:{
+      name:"Falls Road Peace Line",
+      date:"1969 – present",
+      text:"The Peace Lines are a series of separation barriers dividing Protestant and Catholic neighbourhoods across Belfast. The first walls were erected hastily in August 1969, following the pogroms of that summer. The Falls/Shankill interface became one of the most heavily fortified. At their peak, the barriers reached seven to eight metres in height. Despite the Good Friday Agreement of 1998, most peace walls remain standing today — a testament to the persistence of distrust even in post-conflict societies. Community consultations on removal have been complex, contentious, and largely unresolved.",
+      quote:"The wall was there when I was born. I don't know what the street looks like on the other side. That is not ignorance — it is geography."
+    },
+    tr:{
+      name:"Falls Road Barış Hattı",
+      date:"1969 – günümüz",
+      text:"Barış Hatları, Belfast'ta Protestan ve Katolik mahalleleri birbirinden ayıran bir dizi ayrım engeli oluşturuyor. İlk duvarlar, 1969 yazının pogromlarının ardından Ağustos 1969'da aceleyle inşa edildi. Falls/Shankill sınırı en yoğun tahkimatlandırılan noktalardan biri haline geldi. Zirve döneminde engeller yedi ila sekiz metre yüksekliğe ulaştı. 1998 Hayırlı Cuma Anlaşması'na rağmen duvarların büyük çoğunluğu bugün hâlâ ayakta.",
+      quote:"Doğduğumda duvar vardı. Öbür taraftaki sokağın nasıl göründüğünü bilmiyorum. Bu cehalet değil — bu coğrafya."
+    },
+    ku:{
+      name:"Xeta Aştiyê ya Rêya Falls",
+      date:"1969 – heya niha",
+      text:"Xetên Aştiyê di Belfast de rêzek astengên veqetandinê ne ku taxa Protestant û Katolîk ji hev vediqetîne. Dîwarên ewil di Tebax 1969 de piştî pogromên wî havînê bi lez hatin çêkirin. Pêwendiya Falls/Shankill yek ji deverên herî zêde tahkîmkirî bû.",
+      quote:"Dema ku ez hatim dinyayê dîwar hebû. Nizanim kolana aliyek din çawa xuya dike. Ev nezanin nîne — ev erdnîgarî ye."
+    }
+  },
+  {
+    id:"b4", type:"event", lat:54.6035, lng:-5.9050,
+    en:{
+      name:"Shankill Road Bombing",
+      date:"23 October 1993",
+      text:"On 23 October 1993, a Provisional IRA bomb exploded prematurely in Frizzell's fish shop on the Shankill Road, killing the two bombers and seven Protestant civilians — including two children. The attack was intended to kill loyalist leaders believed to be meeting in the flat above. Instead, the bomb detonated as the shop was busy with Saturday morning customers. The bombing provoked a wave of retaliatory loyalist attacks, including the Greysteel massacre days later. It is remembered as one of the Troubles' most terrible episodes — an operation that destroyed the very community it claimed to be protecting.",
+      quote:"I heard the bang and everything turned white. When I came to, my neighbour's shop was gone. Just gone."
+    },
+    tr:{
+      name:"Shankill Road Bombalaması",
+      date:"23 Ekim 1993",
+      text:"23 Ekim 1993'te Shankill Road'daki Frizzell'ın balık dükkanında Geçici IRA bombası erken patlayarak iki bombacıyı ve iki çocuk dahil yedi Protestan sivili öldürdü. Saldırı, üst katta toplandığına inanılan loyalist liderleri hedef alıyordu. Bomba, Cumartesi sabahı dükkân dolu müşterilerle doluyken patladı. Saldırı, kısa süre sonra yaşanan Greysteel katliamı da dahil olmak üzere bir dizi misilleme saldırısını beraberinde getirdi.",
+      quote:"Patlamayı duydum ve her şey beyazlaştı. Kendime geldiğimde komşumun dükkânı yoktu. Sadece yoktu."
+    },
+    ku:{
+      name:"Bombebaran a Rêya Shankill",
+      date:"23ê Cotmeha 1993",
+      text:"Di 23ê Cotmeha 1993 de, bombek IRA ya Provîzyonel di dukana masiyên Frizzell ya rêya Shankill de zû teqiya û du bombekerên IRA û heft sivîlên Protestant, di wan de du zarok, kuşt. Êrîş armanc dikir ku rêberên loyalîst ên ku tê bawer bû li jor dicivin bikuje.",
+      quote:"Min teqîn bihîst û her tişt spî bû. Dema ku hişyar bûm, dukana cîranê min tunebû. Tenê tunebû."
+    }
+  },
+  {
+    id:"b5", type:"person", lat:54.5950, lng:-5.9600,
+    en:{
+      name:"Margaret",
+      date:"b. 1942 · Falls Road",
+      text:"Margaret grew up in a Catholic household on the lower Falls Road, the eldest of six children. Her father worked at the docks; her mother took in sewing. She remembers the 1969 pogroms vividly: the orange glow of Bombay Street reflected in the parlour window, the sound of breaking glass two streets away, her mother wetting blankets and putting them at the bottom of the door. During the worst years, she volunteered at a community centre, helping displaced families find temporary housing. She never considered leaving. 'Why would I leave?' she says. 'My people are here. My grief is here. My hope is here too.' In her eighties, she now attends an inter-community dialogue group. She sits across the table from people she would once have crossed the road to avoid.",
+      quote:"They could knock down every wall in this city and I'd still know which side I'm from. That knowledge lives in the body, not the brick."
+    },
+    tr:{
+      name:"Margaret",
+      date:"d. 1942 · Falls Road",
+      text:"Margaret, Falls Road'ın alt kesiminde Katolik bir ailede büyüdü; altı çocuğun en büyüğüydü. Babası rıhtımda çalışıyordu, annesi dikiş dikiyordu. 1969 pogromlarını canlı canlı hatırlıyor: Bombay Sokağı'nın turuncu parıltısının oturma odasının penceresine yansıması, iki sokak öteden gelen cam kırılma sesi, annesinin battaniyeleri ıslatıp kapının altına koyması. En kötü yıllarda, yerinden edilmiş ailelere geçici konut bulmaya yardım ederek toplum merkezinde gönüllü çalıştı. Seksenli yaşlarında artık toplumlar arası diyalog grubuna katılıyor.",
+      quote:"Bu şehirdeki her duvarı yıkabilirler, ben yine de hangi taraftan olduğumu bilirim. Bu bilgi, tuğlada değil bedende yaşar."
+    },
+    ku:{
+      name:"Margaret",
+      date:"z. 1942 · Rêya Falls",
+      text:"Margaret di malbateke Katolîk de li rêya jêrîn ya Falls mezin bû, ya herî mezin ji şeş zarokan bû. Bavê wê li bendera deryayê dixebitî û diya wê xiyatek dikir. Ew pogroman a 1969 bi zindî tê bîra wê: roniya pirteqalî ya kolana Bombay ku di pencereya odeyê de dihat xuyakirin, dengê şûşeya şikestî ji du kolanên dûr.",
+      quote:"Ew dikarin her dîwarê vî bajarî hilweşînin û ez dê hîn jî zanibbim ku ez ji kîjan aliyê me. Ev zanîn di laş de dijî, ne di kevirê de."
+    }
+  },
+  {
+    id:"b6", type:"person", lat:54.6010, lng:-5.9300,
+    en:{
+      name:"Tommy",
+      date:"b. 1950 · Shankill Road",
+      text:"Tommy spent his working life as a shipyard welder at Harland & Wolff — the same yard that built the Titanic. He is Protestant, unionist, and says he always considered himself 'a Belfastman first and everything else second.' He lost a cousin in the 1993 Shankill Road bombing. For years he couldn't walk past the rebuilt fish shop. His daughter married a Catholic man from Antrim in 2004; he did not attend the wedding. He attended the christening of their first child. 'That boy is my grandson,' he says simply. 'That's all I needed to understand.' He now works with an inter-community dialogue group in North Belfast, a fact he describes as 'the thing that would have surprised my younger self the most.'",
+      quote:"The Troubles didn't start the hate. The hate was there before. But it fed the hate until there was nothing left, and we called that normal. We were wrong to call it normal."
+    },
+    tr:{
+      name:"Tommy",
+      date:"d. 1950 · Shankill Road",
+      text:"Tommy, çalışma hayatını Titanic'in de inşa edildiği Harland & Wolff tersanesinde kaynak ustası olarak geçirdi. Protestan ve üniyonist; her zaman kendini 'önce Belfastlı, geri kalanlar ikinci' olarak tanımladığını söylüyor. 1993 Shankill Road bombalı saldırısında bir kuzeni hayatını kaybetti. Yıllarca yeniden inşa edilen balık dükkanının önünden geçemedi. Kızı 2004'te Antrimli bir Katolik erkekle evlendi; düğüne katılmadı. Torunlarının vaftizine katıldı.",
+      quote:"Troubles nefreti başlatmadı. Nefret önceden vardı. Ama nefreti besledi ta ki geriye bir şey kalmadı ve buna normal dedik. Buna normal demekte yanılıyorduk."
+    },
+    ku:{
+      name:"Tommy",
+      date:"z. 1950 · Rêya Shankill",
+      text:"Tommy jiyana xwe ya xebatê li Harland & Wolff, heman bendergehê ku Titanîk lê hatibû çêkirin, wek karkerê weldingê derbas kir. Ew Protestant û yekîtîxwaz e û dibêje her tim xwe wek 'Belfastî yekem û tiştên din yên din' hesiband.",
+      quote:"Troubles nefret dest pê nekir. Nefret berî wê hebû. Lê nefret xwarine heta tiştek nemabû, û me ew normal got. Me xelet kir ku ew normal got."
+    }
+  },
+  {
+    id:"b7", type:"person", lat:54.5920, lng:-5.9450,
+    en:{
+      name:"Siobhan",
+      date:"b. 1968 · West Belfast",
+      text:"Siobhan was a teenager during the 1981 hunger strikes. She remembers the silence that fell over the Falls on the days that prisoners died: blinds drawn, children kept inside, the streets emptied as if on a signal no one gave. She trained as a social worker and spent her career with young people in interface areas — children who had grown up knowing exactly which streets were and were not safe, whose street art meant danger. After the Good Friday Agreement, she became involved in truth and reconciliation discussions, including facilitated sessions with former loyalist combatants. 'It's not about forgiveness,' she is careful to say. 'It's about being able to live in the same city, in the same decade, in the same present tense — without the past owning every room.'",
+      quote:"Memory isn't something you put away in a box. It's something you learn, over years, to carry differently. Some days you barely notice the weight."
+    },
+    tr:{
+      name:"Siobhan",
+      date:"d. 1968 · Batı Belfast",
+      text:"Siobhan, 1981 açlık grevleri sırasında gençti. Mahkumların öldüğü günlerde Falls'a çöken sessizliği hatırlıyor: perdeler çekilmiş, çocuklar içeride, sokaklar kimsenin vermediği bir işaret gelmiş gibi bomboş. Sosyal hizmet uzmanı olarak yetişti ve kariyerini sınır bölgelerinde gençlerle çalışarak geçirdi. Hayırlı Cuma Anlaşması'nın ardından hakikat ve uzlaşma görüşmelerine dahil oldu.",
+      quote:"Hafıza bir kutuya kaldırıp kapatabileceğiniz bir şey değil. Yıllar içinde farklı biçimde taşımayı öğrendiğiniz bir şey. Kimi günler ağırlığının neredeyse farkında bile olmazsınız."
+    },
+    ku:{
+      name:"Siobhan",
+      date:"z. 1968 · Rojavayê Belfast",
+      text:"Siobhan di dema grevên birçîbûnê yên 1981 de ciwan bû. Ew bêdengiya ku di roja mirina girtiyan de diket ser Fallsê tê bîra wê: perdeyan hatibûn kişandin, zarok di hundur de ma bûn, kolan mîna ku îşaretek nehatibû dan vala bûbûn.",
+      quote:"Bîranîn ne tiştek e ku meriv di qutiyek de bide aliyekî. Tiştek e ku meriv bi salan fêr dibe ku bi awayekî cûda hilgire. Hin rojan hema meriv giraniya wê hîs nake."
+    }
+  }
+];
+
+// ─── SUR DATA ─────────────────────────────────────────
+const SUR = [
+  {
+    id:"s1", type:"event", lat:37.9170, lng:40.2185,
+    en:{
+      name:"Sur Siege Operations",
+      date:"December 2015 – March 2016",
+      text:"Between December 2015 and March 2016, Turkish security forces conducted extended urban counter-insurgency operations in Sur, the historic walled district of Diyarbakır. The operations responded to trenches and barricades erected by PKK-affiliated youth groups. Over the course of more than ninety days of curfews, the operations resulted in the deaths of over a hundred people and the displacement of between twenty thousand and ninety thousand residents — figures that remain contested. Large sections of Sur's Ottoman and medieval urban fabric were severely damaged or demolished. When curfews finally lifted, returning residents found not just damaged buildings but erased streets.",
+      quote:"When we returned, our street had become a car park. They had erased us and built a road through where we used to live."
+    },
+    tr:{
+      name:"Sur Sokağa Çıkma Yasakları ve Operasyonları",
+      date:"Aralık 2015 – Mart 2016",
+      text:"Aralık 2015 ile Mart 2016 arasında Türk güvenlik güçleri, Diyarbakır'ın tarihi surlarla çevrili ilçesi Sur'da doksan günü aşan kentsel terörle mücadele operasyonları yürüttü. PKK bağlantılı gençlik gruplarının açtığı hendek ve barikatları hedef alan operasyonlar, yüzü aşkın kişinin hayatını kaybetmesine ve tartışmalı verilere göre yirmi ila doksan bin sakin arasında değişen sayıda kişinin yerinden edilmesine yol açtı. Sur'un Osmanlı ve ortaçağ dönemine ait kentsel dokusunun büyük bölümü ağır hasar gördü ya da tamamen yıkıldı.",
+      quote:"Döndüğümüzde sokaklarımız otopark olmuştu. Bizi silip üstümüze yol çekmişlerdi."
+    },
+    ku:{
+      name:"Operasyonên Dorpêçkirina Sûrê",
+      date:"Kanûn 2015 – Adar 2016",
+      text:"Di navbera Kanûn 2015 û Adar 2016 de, hêzên ewlehiyê yên Tirkiyê li Sûrê, taxa dîrokî ya Diyarbekirê, zêdetirî nod rojên dorpêç û operasyonên bajarî pêk anîn. Operasyon bersiva xendek û barîkadan bûn ku ji aliyê koman ve hatibûn çêkirin. Zêdetirî sed kes mir û di navbera bîst hezar û nod hezar niştecîhan de ji warên xwe hatin derxistin.",
+      quote:"Dema ku vegerîn, kolana me bûbû parkek otomobîlan. Wan me jêbirin û rê li ser cihê ku me lê dijiya çêkirin."
+    }
+  },
+  {
+    id:"s2", type:"event", lat:37.9195, lng:40.2220,
+    en:{
+      name:"Ancient City Walls — UNESCO World Heritage Site",
+      date:"1st–3rd century CE · Inscribed 2015",
+      text:"The basalt walls of Diyarbakır, stretching approximately 5.5 kilometres with 82 towers, were built during the Roman period and expanded under Byzantine and Artuqid rule. They form one of the most significant surviving examples of ancient urban fortification anywhere in the world. In a sharp historical irony, the walls received their UNESCO World Heritage designation in July 2015 — the same year that military operations began in the districts they enclose. The walls themselves survived; the human geography within them did not. The ancient stones endured while the living city was unmade.",
+      quote:"The walls stood for two thousand years. We couldn't keep our house for forty. Make of that what you will."
+    },
+    tr:{
+      name:"Tarihi Surlar — UNESCO Dünya Mirası",
+      date:"MS 1.–3. yüzyıl · 2015'te tescil edildi",
+      text:"Yaklaşık 5,5 kilometre uzunluğunda ve 82 kuleye sahip Diyarbakır'ın bazalt surları ağırlıklı olarak Roma döneminde inşa edilmiş, Bizans ve Artuklular döneminde genişletilmiştir. Dünyada ayakta kalan en önemli antik kentsel tahkimat örneklerinden birini oluşturan surlar, Temmuz 2015'te UNESCO Dünya Mirası Listesi'ne alındı — çevirdiği mahallelerde askeri operasyonların başladığı aynı yılda. Surların kendisi hayatta kaldı; içlerindeki insan coğrafyası kalmadı.",
+      quote:"Surlar iki bin yıl ayakta kaldı. Biz evimizi kırk yıl koruyamadık. Bundan ne anlarsanız anlayın."
+    },
+    ku:{
+      name:"Dîwarên Bajêrê Kevin — Mîrasa Cîhanî ya UNESCO",
+      date:"ZZ Sedsala 1.–3. · Di 2015 de hatiye tomarkirin",
+      text:"Dîwarên bazaltê yên Diyarbekirê, bi dirêjahiya nêzîkî 5.5 km û 82 bircê, di serdema Romayê de hatin çêkirin û di bin Bîzansiyên û Artukiyan de hatin berfereh kirin. Ew yek ji mînakên herî girîng ên tahkîmatkirina bajêr ê kevnare ya cîhanê ne û di Tîrmehê 2015 de di lîsteya Mîrasa Cîhanî ya UNESCO de hat tomarkirin — di heman salê de ku operasyon di taxên ku ew hildide de dest pê kir.",
+      quote:"Dîwar du hezar sal sekinîn. Me nikaribû xaniyê xwe çil salan biparêze. Ji vê her tiştê ku dixwazin fêm bikin."
+    }
+  },
+  {
+    id:"s3", type:"event", lat:37.9150, lng:40.2280,
+    en:{
+      name:"Historic Bazaar & Caravanserai District",
+      date:"16th century · Damaged and demolished 2015–2016",
+      text:"The covered bazaars and hans (caravanserais) of Sur date to the Ottoman period, serving as the commercial and social heart of Diyarbakır for centuries. The Hasanpaşa Hanı, built in 1572, was the largest caravanserai in the region. During and after the 2015–16 operations, significant portions of the historic bazaar district were demolished under emergency expropriation decrees. The subsequent urban renewal plans — administered by TOKI, the state housing authority — prioritised wide boulevards and new apartment buildings over the preservation of the historic urban grain. Critics including UNESCO and the Council of Europe expressed concern that the reconstruction constituted irreversible destruction of a World Heritage site.",
+      quote:"My grandfather sold spices here. My father sold textiles. There is nothing left to sell. There is no here anymore."
+    },
+    tr:{
+      name:"Tarihi Çarşı ve Hanlar",
+      date:"16. yüzyıl · 2015–2016'da hasar gördü ve yıkıldı",
+      text:"Sur'un kapalı çarşıları ve hanları Osmanlı dönemine dayanmakta olup yüzyıllarca Diyarbakır'ın ticari ve sosyal merkezi işlevini gördü. 1572'de inşa edilen Hasanpaşa Hanı, bölgenin en büyük kervansarayıydı. 2015-16 operasyonları sırasında ve sonrasında tarihi çarşı bölgesinin önemli bölümleri olağanüstü hal kamulaştırma kararnameleri kapsamında yıkıldı. Devlet konut idaresi TOKİ tarafından yönetilen kentsel yenileme planları, tarihi kentsel dokunun korunması yerine geniş bulvarlar ve yeni apartmanları önceliklendirdi.",
+      quote:"Dedem burada baharat satardı. Babam tekstil satardı. Artık satacak bir şey yok. Artık 'burası' yok."
+    },
+    ku:{
+      name:"Navenda Bazara Dîrokî û Xan",
+      date:"Sedsala 16an · Di 2015–2016 de hat xirabe kirin",
+      text:"Bazarên nixumandî û xanên Sûrê ji serdema Osmanî ne û ji sedsalan ve wek dilê bazirganî û civakî yê Diyarbekirê xizmet kirin. Hasanpaşa Xanî, ku di 1572 de hatibû çêkirin, xana herî mezin a herêmê bû. Di dema û piştî operasyonên 2015-16 de, beşên girîng ên navenda bazara dîrokî di bin biryarên kamulaştirînê yên awarte de hatin hilweşandin.",
+      quote:"Bapîrê min li vir biharê difiroşt. Bavê min tekstîl difiroşt. Êdî tiştek nemaye ku bê firoştin. Êdî 'vir' tune."
+    }
+  },
+  {
+    id:"s4", type:"event", lat:37.9110, lng:40.2170,
+    en:{
+      name:"Expropriation & Urban Renewal Zone",
+      date:"2016–2021",
+      text:"Following the operations, the Turkish government declared large areas of Sur under emergency expropriation and launched a controversial urban renewal project administered by TOKI. Critics — including architectural preservation bodies, human rights organisations, the Council of Europe, and UNESCO — argued that the project constituted a deliberate transformation of the demographic and cultural character of the district. New apartment blocks, wide roads, and surface car parks replaced the dense, irregular, centuries-old urban tissue. Former residents who had been displaced were offered housing in new estates on the city's periphery — far from the centre, far from the networks of family and commerce they had known.",
+      quote:"They call it renewal. In Sur, renewal means erasure. They renewed the land but they erased the people who belonged to it."
+    },
+    tr:{
+      name:"Kamulaştırma Bölgesi ve Kentsel Dönüşüm",
+      date:"2016–2021",
+      text:"Operasyonların ardından Türk hükümeti, Sur'un geniş alanlarını olağanüstü hal kamulaştırması kapsamına alarak TOKİ tarafından yönetilen tartışmalı bir kentsel dönüşüm projesi başlattı. Mimari koruma kuruluşları, insan hakları örgütleri, Avrupa Konseyi ve UNESCO dahil olmak üzere pek çok kurum, bu projenin ilçenin demografik ve kültürel karakterinin kasıtlı olarak dönüştürülmesine hizmet ettiğini ileri sürdü. Yeni apartmanlar, geniş yollar ve açık otoparklar, yüzyıllık yoğun ve organik kentsel dokuyu ortadan kaldırdı.",
+      quote:"Buna 'yenileme' diyorlar. Sur'da yenileme silme demek. Toprağı yenilediler ama ona ait olan insanları sildiler."
+    },
+    ku:{
+      name:"Zona Niştimankirinê û Nûkirina Bajêr",
+      date:"2016–2021",
+      text:"Li pey operasyonan, hikûmeta Tirkiyê deverên mezin ên Sûrê di bin niştimankirina awarte de ragihand û projeyek nûkirina bajêr ê nakokî ya ku ji aliyê TOKÎyê ve tê rêvebirin dest pê kir. Rexnekar, di nav de dezgehên parastina mîmarî, rêxistinên mafên mirovan, Konseya Ewropayê û UNESCO, gotin ku proje veguherandina qestkirî ya karaktera demografîk û çandî ya taxê pêk tîne.",
+      quote:"Ew jê re dibêjin nûkirîn. Li Sûrê, nûkirîn tê mana jêbirinê. Erd nû kirin lê mirovên ku pê re eleqedar bûn jêbirin."
+    }
+  },
+  {
+    id:"s5", type:"person", lat:37.9155, lng:40.2195,
+    en:{
+      name:"Fatma Ana",
+      date:"b. 1943 · Sur",
+      text:"Fatma was born in Sur and lived her entire life within the ancient walls. She raised four children in the same house her own mother was born in. She knew every family on her street; she attended their weddings, their funerals, their sünnet celebrations. She knew which neighbour had a doctor in the family, which elder made the best şerbet for summer, which courtyard kept the best pomegranate tree. In December 2015, at the age of 72, she received an official notice to vacate. She went to stay with her daughter in a new housing estate on the city's outskirts. When she was eventually permitted to return, in 2018, the street no longer existed. Her house had been demolished. In its place: a six-lane road. 'I am not angry,' she says, carefully. 'Anger requires hope. I am past anger.'",
+      quote:"I left Sur as a living neighbourhood. I came back to a museum of nothing — not even ruins, just empty space where people used to be."
+    },
+    tr:{
+      name:"Fatma Ana",
+      date:"d. 1943 · Sur",
+      text:"Fatma, Sur'da doğdu ve tüm hayatını kadim surların içinde geçirdi. Dört çocuğunu kendi annesinin de dünyaya geldiği evde büyüttü. Sokağındaki her aileyi tanırdı; düğünlerine, cenazelerine, sünnet törenlerine katılırdı. Hangi komşunun ailesinde doktor olduğunu, hangi büyüğün en iyi şerbeti yaptığını, hangi avlunun en güzel nar ağacını barındırdığını bilirdi. Aralık 2015'te, 72 yaşında, tahliye bildirimi aldı. Kentin çeperindeki yeni bir sitede kızının yanına gitti. 2018'de nihayet dönmesine izin verildiğinde, sokak artık yoktu. Evi yıkılmıştı. Yerine altı şeritli bir yol yapılmıştı.",
+      quote:"Sur'u canlı bir mahalle olarak terk ettim. Bir hiçin müzesine döndüm; harabe bile değil, sadece insanların bir zamanlar var olduğu boş bir alan."
+    },
+    ku:{
+      name:"Fatma Ana",
+      date:"z. 1943 · Sur",
+      text:"Fatma li Sûrê ji dayik bû û tevahiya jiyana xwe di nav dîwarên kevnare de derbas kir. Çar zarokên xwe di heman xaniyê ku diya wê jî lê ji dayik bûbû mezin kir. Ew her malbata kolana xwe nas dikir; beşdarî dawet, cenaze û merasimên sûnetê bûbû. Di Kanûn 2015 de, di 72 saliya xwe de, agahdariyeke fermî ya vala kirinê wergirt.",
+      quote:"Min Sur wek taxa jiyandar hişt. Min vegeriya mûzeyek ji tiştek tune — ne xirabe jî, tenê cihê vala yê ku mirov lê hebûn."
+    }
+  },
+  {
+    id:"s6", type:"person", lat:37.9185, lng:40.2155,
+    en:{
+      name:"Rêzan",
+      date:"b. 1994 · Sur",
+      text:"Rêzan was 21 when the curfews began. He had grown up speaking Kurdish at home and Turkish at school, navigating between identities in the way young people of Sur had done for generations — without always having to choose. He describes the autumn of 2015 as a time of impossible choices: stay or leave, resist or comply, belong or survive. He left for Istanbul in November 2015. He returned once, in 2017, and could not find the street where he had played football as a child. He works now as a graphic designer in Istanbul. His national identity card still lists Sur as his place of birth. 'That place doesn't exist anymore,' he says. 'But I still come from there. I don't know what to do with that.'",
+      quote:"You can destroy a place. You cannot destroy the memory of a place. But the memory becomes heavier when the place is gone — there's nothing to check it against."
+    },
+    tr:{
+      name:"Rêzan",
+      date:"d. 1994 · Sur",
+      text:"Sokağa çıkma yasakları başladığında Rêzan 21 yaşındaydı. Evde Kürtçe, okulda Türkçe konuşarak —her zaman seçmek zorunda kalmadan— Sur'un gençliğinin nesiller boyunca yaptığı gibi kimlikler arasında gidip gelerek büyümüştü. 2015 sonbaharını 'imkânsız seçimler' zamanı olarak tanımlıyor: kalmak ya da gitmek, direnmek ya da uymak, ait olmak ya da hayatta kalmak. Kasım 2015'te İstanbul'a gitti. Bir kez döndü, 2017'de; çocukken futbol oynadığı sokağı bulamadı.",
+      quote:"Bir mekânı yok edebilirsiniz. Bir mekânın hafızasını yok edemezsiniz. Ama mekân gittiğinde hafıza ağırlaşır — karşılaştırabileceğiniz bir şey kalmaz."
+    },
+    ku:{
+      name:"Rêzan",
+      date:"z. 1994 · Sur",
+      text:"Dema ku qedexeyên derçûnê dest pê kirin Rêzan 21 salî bû. Ew di malê de bi Kurdî, li dibistanê bi Tirkî diaxivî, bi awayê ciwan ên Sûrê yên neslan navbera nasnameyan derbas dikir — bêyî ku her dem mecbûr bimîne hilbijêre. Wî payîza 2015 wek dema 'hilbijartinên ne mimkûn' binav dike. Di Mijdara 2015 de çû Stenbolê û carekê di 2017 de vegeriya — nikaribû kolana ku di zaroktiyê de futbol lê lîstibû bibîne.",
+      quote:"Hûn dikarin cihekî hilweşînin. Hûn nikarin bîranîna cihekî hilweşînin. Lê dema ku cih here, bîranîn girantir dibe — tiştek namîne ku meriv pê bide ber hev."
+    }
+  },
+  {
+    id:"s7", type:"person", lat:37.9135, lng:40.2245,
+    en:{
+      name:"Ayşe",
+      date:"b. 1971 · Sur",
+      text:"Ayşe taught primary school in Sur for nineteen years. She knew her pupils' families, their languages, their difficulties — because in Sur many children arrived at school speaking only Kurdish. She describes Sur as 'a city within a city: chaotic, layered, irreplaceable.' After the operations, her school was damaged and subsequently demolished. She was reassigned to a new school in a different district. She found her new pupils polite and studious. But she noticed the difference: fewer languages in the corridors, fewer grandmothers waiting at the gate with food wrapped in newspaper, fewer stories that reached back further than anyone could remember. 'Teaching in Sur,' she says, 'was like teaching in the deep past and the living present simultaneously. You don't find that twice.'",
+      quote:"They built new schools. Clean, modern, identical. But a school is also its children, and its children's grandmothers, and the streets they walked through. Sur's children are scattered now. The new school doesn't know them."
+    },
+    tr:{
+      name:"Ayşe",
+      date:"d. 1971 · Sur",
+      text:"Ayşe, Sur'da on dokuz yıl ilkokul öğretmenliği yaptı. Sur'daki pek çok çocuk okula yalnızca Kürtçe konuşarak geldiğinden öğrencilerinin ailelerini, dillerini ve zorluklarını yakından tanırdı. Sur'u 'bir şehir içinde şehir: kaotik, katmanlı, yeri doldurulamaz' olarak tanımlıyor. Operasyonların ardından okulu hasar gördü ve ardından yıkıldı; başka bir semtteki yeni bir okula nakledildi. Yeni öğrencilerini kibar ve çalışkan buldu. Ama farkı hissetti: koridorlarda daha az dil, kapıda gazeteli yiyeceklerle bekleyen daha az büyükanne, kimsenin hatırladığından daha gerilere uzanan daha az hikâye.",
+      quote:"Yeni okullar yaptılar. Temiz, modern, birbirinin aynı. Ama okul aynı zamanda öğrencileri, onların büyükannesini ve yürüdükleri sokakları da kapsar. Sur'un çocukları dağıldı. Yeni okul onları tanımıyor."
+    },
+    ku:{
+      name:"Ayşe",
+      date:"z. 1971 · Sur",
+      text:"Ayşe di Sur de nozde salan mamostetiya dibistana seretayî kir. Ew malbatên xwendekarên xwe, zimanên wan û zehmetiyên wan nas dikir, ji ber ku li Sûrê gelek zarok tenê bi Kurdî diaxivîn dihatin dibistanê. Wê Sur wek 'bajêrek di hundurê bajêrekî de: kaotîk, tebeqeyî, bi cihnahber' binav dike. Li pey operasyonan, dibistana wê hat xirabekirin û dûre hat hilweşandin.",
+      quote:"Wan dibistanên nû ava kirin. Paqij, nûjen, yek mîna yê din. Lê dibistan jî zarokên wê ne, dapîrên wan û kolanên ku ew pê re derbas dibûn. Zarokên Sûrê êdî belav bûne. Dibistana nû wan nas nake."
+    }
+  }
+];
+
+// ─── ABOUT CONTENT ────────────────────────────────────
+const ABOUT = {
+  en: {
+    label: "Project",
+    title: "Mapping Memory",
+    p1: "This project places two cities in dialogue: Belfast, Northern Ireland, and Sur (Diyarbakır), southeast Turkey. Both are places where conflict left deep marks in the urban fabric — in streets renamed, buildings demolished, communities displaced, and memories contested.",
+    p2: "Through interactive maps, personal testimonies, and historical markers, Mapping Memory attempts to visualise the layered experience of people who lived through — and after — periods of intense urban conflict. It is not a comparison that implies equivalence. It is an invitation to slow reading, to lateral attention, to the kind of thinking that allows two different stories to illuminate each other without erasing their differences.",
+    p3: "The testimonies presented here are composites drawn from oral history archives, field interviews, and published accounts. All personal names are pseudonyms. All content is presented in three languages: English, Turkish, and Kurmanji Kurdish.",
+    m_label: "How to navigate",
+    m_text: "Red dots on each map mark historical events. Portrait icons mark personal testimonies. Click any marker to fly to that location and open the narrative panel. Use the Listen button to hear any testimony read aloud via your device's text-to-speech system. Language can be switched at any time without losing your position.",
+    r_label: "Sources & Acknowledgements",
+  },
+  tr: {
+    label: "Proje",
+    title: "Hafızayı Haritalamak",
+    p1: "Bu proje iki şehri diyaloğa davet ediyor: Kuzey İrlanda'da Belfast ve güneydoğu Türkiye'de Sur (Diyarbakır). Her ikisi de çatışmanın kentsel dokuda derin izler bıraktığı yerler: yeniden adlandırılan sokaklar, yıkılan binalar, yerinden edilen topluluklar ve tartışmalı hafızalar.",
+    p2: "İnteraktif haritalar, kişisel tanıklıklar ve tarihsel işaretler aracılığıyla Hafızayı Haritalamak, yoğun kentsel çatışma dönemlerini ve sonrasını yaşayan insanların katmanlı deneyimini görünür kılmaya çalışıyor. Bu bir denklik iddiası taşıyan bir karşılaştırma değil. Yavaş okumaya, farklılıklarını silmeksizin birbirini aydınlatmasına izin veren düşünme biçimine bir davet.",
+    p3: "Burada sunulan tanıklıklar, sözlü tarih arşivleri, saha görüşmeleri ve yayınlanmış anlatılardan derlenen bileşik anlatılardır. Tüm kişi adları takma addır.",
+    m_label: "Nasıl gezinilir",
+    m_text: "Her haritadaki kırmızı noktalar tarihsel olayları işaretliyor. Portre ikonları kişisel tanıklıkları gösteriyor. Herhangi bir işarete tıklamak haritayı o konuma götürür ve anlatı panelini açar. Dinle düğmesiyle herhangi bir tanıklığı cihazınızın metin okuma sistemiyle sesli dinleyebilirsiniz.",
+    r_label: "Kaynaklar ve Teşekkür",
+  },
+  ku: {
+    label: "Proje",
+    title: "Nexşekirina Bîranînê",
+    p1: "Ev proje du bajaran dide hevdîtin: Belfast, Irlanda Bakur, û Sur (Diyarbekir), başûrê rojhilatê Tirkiyê. Her du jî cihên ku pevçûn di tevna bajêr de şopên kûr hiştin ne — di kolanên ku navên wan hatin guhertin, avahiyên ku hatin hilweşandin, civakên ku ji warên xwe hatin derxistin û bîranînên ku tên niqaşkirin.",
+    p2: "Bi nexşeyên înteraktîf, şahidiyên kesane û nîşanên dîrokî re, Nexşekirina Bîranînê hewl dide ku ezmûna tebeqeyî ya mirovan ku di dema pevçûna bajêr a tund û piştî wê de jiyan, xuya bike. Ev ne berawirdek e ku wekheviyê îdîa dike. Ev vexwendinek e ji bo xwendinek hêdî, fikirên alî.",
+    p3: "Şahidiyên ku li vir têne pêşkêş kirin, hevberkirinên ji arşîvên dîroka devkî, hevpeyvînên meydanê û anekdotên weşandî ne. Hemû navên kesane pseudonym in.",
+    m_label: "Meriv çawa digere",
+    m_text: "Xalên sor ên li her nexşeyê bûyerên dîrokî nîşan didin. Îkonên portreyê şahidiyên kesane nîşan didin. Tikandina li nîşanekê nexşeyê dibe wî cihî û panela çîrokê vedike.",
+    r_label: "Çavkanî û Spasî",
+  }
+};
+
+// ─── MAP COMPONENT ────────────────────────────────────
+function LeafletMap({ city, markers, lang, onMarkerClick, activeId }) {
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markerLayerRef = useRef({});
+
+  const center = city === 'belfast' ? [54.5973, -5.9301] : [37.9155, 40.2199];
+  const zoom   = city === 'belfast' ? 14 : 15;
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+    const map = L.map(containerRef.current, { center, zoom, zoomControl: true });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+    mapRef.current = map;
+    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    Object.values(markerLayerRef.current).forEach(m => m.remove());
+    markerLayerRef.current = {};
+
+    markers.forEach(mk => {
+      const d = mk[lang] || mk.en;
+      const isEvent  = mk.type === 'event';
+      const isActive = mk.id === activeId;
+      const html = isEvent
+        ? `<div class="m-event pulsing${isActive?' active':''}"></div>`
+        : `<div class="m-person pulsing${isActive?' active':''}"></div>`;
+
+      const icon = L.divIcon({
+        html,
+        className: '',
+        iconSize:   isEvent ? [10,10] : [12,12],
+        iconAnchor: isEvent ? [5,5]   : [6,6],
+      });
+
+      const lm = L.marker([mk.lat, mk.lng], { icon }).addTo(mapRef.current);
+      lm.bindTooltip(d.name, { permanent:false, direction:'top', className:'dark-tooltip', offset:[0,-6] });
+      lm.on('click', () => {
+        onMarkerClick(mk);
+        mapRef.current.flyTo([mk.lat, mk.lng], 17, { animate:true, duration:1.4 });
+      });
+      markerLayerRef.current[mk.id] = lm;
+    });
+  }, [markers, lang, activeId, onMarkerClick]);
+
+  return <div ref={containerRef} style={{width:'100%',height:'100%'}} />;
+}
+
+// ─── NARRATIVE PANEL ──────────────────────────────────
+function NarrativePanel({ marker, lang, t, onClose }) {
+  const [playing, setPlaying] = useState(false);
+  const d = marker ? (marker[lang] || marker.en) : null;
+
+  useEffect(() => {
+    return () => window.speechSynthesis?.cancel();
+  }, []);
+
+  useEffect(() => {
+    if (!marker) { window.speechSynthesis?.cancel(); setPlaying(false); }
+  }, [marker]);
+
+  const handleListen = () => {
+    if (!d) return;
+    if (playing) { window.speechSynthesis?.cancel(); setPlaying(false); return; }
+    const text = `${d.name}. ${d.date}. ${d.text}. ${d.quote}`;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang  = lang === 'tr' ? 'tr-TR' : lang === 'ku' ? 'tr-TR' : 'en-GB';
+    u.rate  = 0.88;
+    u.onend = u.onerror = () => setPlaying(false);
+    window.speechSynthesis.speak(u);
+    setPlaying(true);
+  };
+
+  return (
+    <div className={`narrative-overlay${marker ? ' open' : ''}`}>
+      {marker && d && <>
+        <div className="narrative-header">
+          <div>
+            <div className="narrative-type">{t[`type_${marker.type}`]}</div>
+            <div className="narrative-name">{d.name}</div>
+            <div className="narrative-date">{d.date}</div>
+          </div>
+          <button className="close-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="narrative-body">
+          <p className="narrative-text">{d.text}</p>
+          {d.quote && <blockquote className="narrative-quote">"{d.quote}"</blockquote>}
+        </div>
+        <div className="narrative-footer">
+          <button className={`listen-btn${playing ? ' playing' : ''}`} onClick={handleListen}>
+            <span>{playing ? '⏹' : '▶'}</span>
+            {playing ? t.stop : t.listen}
+          </button>
+        </div>
+      </>}
+    </div>
+  );
+}
+
+// ─── ABOUT TAB ────────────────────────────────────────
+function AboutTab({ lang }) {
+  const c = ABOUT[lang] || ABOUT.en;
+  return (
+    <div className="about-container">
+      <div className="about-section">
+        <div className="about-label">{c.label}</div>
+        <h1 className="about-title">{c.title}</h1>
+        <p>{c.p1}</p>
+        <p>{c.p2}</p>
+        <p>{c.p3}</p>
+      </div>
+      <hr className="about-divider"/>
+      <div className="about-section">
+        <div className="about-label">{c.m_label}</div>
+        <p>{c.m_text}</p>
+      </div>
+      <hr className="about-divider"/>
+      <div className="about-section">
+        <div className="about-label">{c.r_label}</div>
+        <div className="ref-grid">
+          <div className="ref-card">
+            <h4>Belfast</h4>
+            <p>CAIN Web Service · Oral History Archive NI · Belfast City Libraries · Lost Lives (McKittrick et al.)</p>
+          </div>
+          <div className="ref-card">
+            <h4>Sur / Diyarbakır</h4>
+            <p>DİSA · Hafıza Merkezi · Human Rights Watch (2016) · Council of Europe Reports</p>
+          </div>
+          <div className="ref-card">
+            <h4>Cartography</h4>
+            <p>OpenStreetMap contributors · CARTO Dark Matter · Leaflet.js</p>
+          </div>
+          <div className="ref-card">
+            <h4>UNESCO</h4>
+            <p>Diyarbakır Fortress & Hevsel Gardens (WHC-15/39.COM/7B.Add) · Belfast (tentative list)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ──────────────────────────────────────────────
+function App() {
+  const [lang,   setLang  ] = useState('en');
+  const [tab,    setTab   ] = useState('maps');
+  const [active, setActive] = useState(null);
+  const t = T[lang] || T.en;
+
+  const onMarker = useCallback(mk => setActive(mk), []);
+  const onClose  = useCallback(() => setActive(null), []);
+
+  return (
+    <div>
+      <header className="header">
+        <div className="header-title">{t.title}</div>
+        <div className="header-right">
+          <div className="tabs">
+            <button className={`tab-btn${tab==='maps'?' active':''}`}  onClick={()=>setTab('maps')} >{t.tab_maps}</button>
+            <button className={`tab-btn${tab==='about'?' active':''}`} onClick={()=>setTab('about')}>{t.tab_about}</button>
+          </div>
+          <div className="lang-switch">
+            {['en','tr','ku'].map(l=>(
+              <button key={l} className={`lang-btn${lang===l?' active':''}`} onClick={()=>setLang(l)}>
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <main className="main">
+        {tab === 'maps' ? (
+          <div className="maps-container">
+            <div className="map-section">
+              <div className="map-label">{t.belfast}</div>
+              <div className="map-legend">
+                <div className="legend-item"><div className="legend-dot"></div>{t.legend_event}</div>
+                <div className="legend-item"><div className="legend-person"></div>{t.legend_person}</div>
+              </div>
+              <LeafletMap city="belfast" markers={BELFAST} lang={lang} onMarkerClick={onMarker} activeId={active?.id}/>
+            </div>
+            <div className="map-section">
+              <div className="map-label">{t.sur}</div>
+              <div className="map-legend">
+                <div className="legend-item"><div className="legend-dot"></div>{t.legend_event}</div>
+                <div className="legend-item"><div className="legend-person"></div>{t.legend_person}</div>
+              </div>
+              <LeafletMap city="sur" markers={SUR} lang={lang} onMarkerClick={onMarker} activeId={active?.id}/>
+            </div>
+          </div>
+        ) : (
+          <AboutTab lang={lang}/>
+        )}
+      </main>
+
+      <NarrativePanel marker={active} lang={lang} t={t} onClose={onClose}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
