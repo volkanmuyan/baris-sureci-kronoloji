@@ -84,7 +84,7 @@ const CONNS = [
 var CATS = {
   siyasi:   { label: "Siyasi",   color: "#4f8ef7" },
   sivil:    { label: "Sivil",    color: "#3ecf8e" },
-  kadin:    { label: "Kadın",    color: "#e879a0" },
+  kadin:    { label: "Toplumsal Cinsiyet", color: "#e879a0" },
   pkk:      { label: "PKK/KCK",  color: "#f5a623" },
   tbmm:     { label: "TBMM",     color: "#a07cf7" },
   rojava:   { label: "Rojava",   color: "#e05c5c" },
@@ -501,3 +501,50 @@ window.addEventListener("resize", function() {
 buildHeroStats();
 buildFilters();
 render();
+
+/* ── TAB SWITCHING ──────────────────────────────────────── */
+document.getElementById("tabNav").addEventListener("click", function(e) {
+  var btn = e.target.closest(".tab-btn");
+  if (!btn) return;
+  var target = btn.dataset.tab;
+  var allBtns = document.querySelectorAll(".tab-btn");
+  for (var i = 0; i < allBtns.length; i++) {
+    allBtns[i].classList.toggle("active", allBtns[i].dataset.tab === target);
+  }
+  var panels = document.querySelectorAll(".tab-panel");
+  for (var j = 0; j < panels.length; j++) {
+    panels[j].classList.toggle("active", panels[j].id === "tab-" + target);
+  }
+});
+
+/* ── THEME TOGGLE ───────────────────────────────────────── */
+(function() {
+  var btn = document.getElementById("themeToggle");
+  var root = document.documentElement;
+  var stored = localStorage.getItem("kronoloji-theme");
+  if (stored === "light") root.setAttribute("data-theme", "light");
+
+  function sunIcon() {
+    return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>';
+  }
+  function moonIcon() {
+    return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  }
+
+  function updateIcon() {
+    btn.innerHTML = root.getAttribute("data-theme") === "light" ? moonIcon() : sunIcon();
+  }
+  updateIcon();
+
+  btn.addEventListener("click", function() {
+    var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+    if (next === "dark") {
+      root.removeAttribute("data-theme");
+      localStorage.setItem("kronoloji-theme", "dark");
+    } else {
+      root.setAttribute("data-theme", "light");
+      localStorage.setItem("kronoloji-theme", "light");
+    }
+    updateIcon();
+  });
+})();

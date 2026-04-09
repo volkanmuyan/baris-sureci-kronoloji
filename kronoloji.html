@@ -8,6 +8,8 @@
 </head>
 <body>
   <div id="app">
+    <button class="theme-toggle" id="themeToggle" aria-label="Tema değiştir"></button>
+
     <header class="hero">
       <div class="hero-inner">
         <p class="hero-eyebrow">Belgesel Kronoloji</p>
@@ -17,28 +19,72 @@
       </div>
     </header>
 
-    <div class="sticky-bar" id="stickyBar">
-      <div class="sticky-inner">
-        <div class="search-wrap">
-          <svg class="search-icon" viewBox="0 0 20 20" fill="none">
-            <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M13 13l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-          <input type="text" id="searchInput" placeholder="Olay, kişi veya kurum ara…" autocomplete="off" />
-          <button class="clear-btn" id="clearBtn" aria-label="Temizle">✕</button>
-        </div>
-        <div class="filters" id="filterBtns"></div>
+    <nav class="tab-nav" id="tabNav">
+      <div class="tab-nav-inner">
+        <button class="tab-btn active" data-tab="kronoloji">Kronoloji</button>
+        <button class="tab-btn" data-tab="hakkinda">Proje Hakkında</button>
       </div>
+    </nav>
+
+    <div id="tab-kronoloji" class="tab-panel active">
+      <div class="sticky-bar" id="stickyBar">
+        <div class="sticky-inner">
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="none">
+              <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M13 13l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <input type="text" id="searchInput" placeholder="Olay, kişi veya kurum ara…" autocomplete="off" />
+            <button class="clear-btn" id="clearBtn" aria-label="Temizle">✕</button>
+          </div>
+          <div class="filters" id="filterBtns"></div>
+        </div>
+      </div>
+
+      <main class="timeline-outer" id="tlOuter">
+        <svg class="connections-svg" id="connSvg" aria-hidden="true"></svg>
+        <div class="timeline-inner" id="tlInner"></div>
+      </main>
+
+      <footer class="site-footer">
+        <p>Veriler kamuya açık kaynaklara dayanmaktadır · <span id="footerCount"></span> olay belgelenmiştir</p>
+      </footer>
     </div>
 
-    <main class="timeline-outer" id="tlOuter">
-      <svg class="connections-svg" id="connSvg" aria-hidden="true"></svg>
-      <div class="timeline-inner" id="tlInner"></div>
-    </main>
+    <div id="tab-hakkinda" class="tab-panel">
+      <div class="about-outer">
+        <article class="about-content">
+          <h2 class="about-title">Resmî Tarihin Ötesinde: Birlikte Barışın Hafızasını Kaydedelim</h2>
 
-    <footer class="site-footer">
-      <p>Veriler kamuya açık kaynaklara dayanmaktadır · <span id="footerCount"></span> olay belgelenmiştir</p>
-    </footer>
+          <p>1 Ekim 2024'te başlayan ve farklı politik ile toplumsal gruplar tarafından farklı biçimlerde adlandırılan "süreç" ilk yılını geride bırakırken hazırlanan bu çalışma ile sürecin sistematik, kronolojik ve düzenli bir şekilde gözlemlenmesi ve belgelenmesini hedefliyor. Ancak bu metin yalnızca tamamlanmış bir kronoloji sunmuyor. Aynı zamanda tüm paydaşlara kronolojiyi birlikte geliştirmeye katkı sunmaları için bir davet niteliği taşıyor.</p>
+
+          <p>Olayların zaman dizgesine dayalı olarak yapılandırılması, bireysel ve toplumsal hafızalarda oluşabilecek parçalanmış ve çelişkili anlatıları dengeleyerek daha bütüncül ve tutarlı bir geçmiş algısının gelişmesine katkıda bulunur. Kronolojik yaklaşım, aynı zamanda toplumsal hafızanın sürekliliğini korumak, farklı kesimlerin deneyimlerini ortak bir zemin üzerinde buluşturmak ve geleceğe dair yürütülecek tartışmalar açısından da kritik bir işlev görür. Bu yöntem, yalnızca geçmişin kayda geçirilmesini değil, aynı zamanda toplumsal diyalog ve hesap verebilirlik için ortak bir referans noktası oluşturmayı da hedefler. Bu çerçevede, sizlere sunduğumuz bu kısa çalışma kapsamında veri toplama süreci sistematik biçimde yürütülmüş; tüm gözlemler, belge ve kaynaklar kronolojik bir düzene göre tasnif edilmiştir. Bu yöntem; izlenen olayların, ne zaman gerçekleştiğinin, hangi bağlamda ortaya çıktığının ve sonraki gelişmelerle nasıl ilişkilendiğinin açık biçimde takip edilebilmesine olanak tanır.</p>
+
+          <p>Barış süreçleri doğası gereği uzun soluklu, çok katmanlı ve karmaşık süreçlerdir; dolayısıyla olayların ve gelişmelerin doğru bir zaman dizgesi içerisinde belgelenmesi, sürecin ilerleyişini sağlıklı biçimde değerlendirebilmek için elzemdir. Barış süreçleri için kalıcı ve kapsayıcı bir hafıza oluşturmak, gelecekteki politika yapıcılar ve toplumsal aktörler için güçlü bir öğrenme zemini sunar. Aynı zamanda, sürece dâhil olan tüm aktörlerin rollerinin ve sorumluluklarının zaman dizgesine göre görünür kılınması, sürecin kapsamlı bir değerlendirilmesinin yapılması adına önem arz eder. Bu yöntem, yalnızca sürecin bugüne dek nasıl ilerlediğini anlamayı değil, aynı zamanda gelecekteki barış inşası çabaları için dersler çıkarmayı ve sürdürülebilir, kapsayıcı bir pozitif barış ortamının inşasına katkı sağlamayı hedefler.</p>
+
+          <p>Sürecin tarihsel akışını vermeye başlamadan evvel, bu çalışmanın ana motivasyonlarından birinin, bu tarihsel akışın lineer bir hat sunmadığını ortaya koymak olduğunu ifade etmek gerekir. Kronoloji, kavramsal olarak zihinlerde lineer bir yapı olarak belirse de, kırılgan ve yoruma açık bir düzenleme biçimidir. Kronoloji, olayları zaman dizgisine göre sıralayarak, öncelik–sonralık üzerinden bir ilerleme fikrine dayanır ve böylece takip edilen sürecin dinamiklerinin anlaşılması ve takip edilmesini kolaylaştırır. Zihnimizde beliren ilk imaj her ne kadar bir lineer çizgi olsa, kronoloji oldukça kırılgandır. Gerekçelerini şöyle özetlemek mümkün:</p>
+
+          <ol class="about-list">
+            <li><strong>Kronoloji seçim ve dışlama içerir:</strong> Hangi olayın kronolojiye dahil edileceği, hangisinin edilmediği bir tercih ve süzgeç gerektirir. Bu da belirli bir bakış açısını yansıtır.</li>
+            <li><strong>Farklı zaman algıları vardır:</strong> Toplumsal gruplar, bireyler ya da kurumlar olayları farklı önceliklerle ve farklı "dönüm noktaları" etrafında kurgular. Yani "ne zaman başlar, ne zaman biter" sorusunun cevabı sabit değildir.</li>
+            <li><strong>Geri dönüşler ve tekrarlar:</strong> Barış süreçleri gibi karmaşık toplumsal süreçlerde "ilerleme" çizgisel ve düz değildir. İleri–geri–tıkanma–yeniden başlama gibi değişken hareketler görülür. Bu da saf lineer bir anlatının sınırlarını gösterir.</li>
+            <li><strong>Anlam üretimi:</strong> Kronolojik sıralama, "neyin önemli olduğuna" dair bir anlam kurgusu yaratır. Bu kurgu zamanla değişebilir veya alternatif anlatılar tarafından sorgulanabilir.</li>
+          </ol>
+
+          <p>Barış süreçleri gibi karmaşık, çok aktörlü ve uzun soluklu toplumsal dönüşüm süreçlerinin izlenmesinde kronolojik yaklaşım güçlü bir analitik araç olmakla birlikte, bu yöntemin sınırlılıklarının ve kırılgan yapısının da farkında olmak gerekir. Her ne kadar olayların zaman dizgesine göre sıralanması, süreç içindeki değişimleri ve dönüm noktalarını görünür kılmak açısından faydalı olsa da; ilerlemenin dalgalı, zaman zaman geri dönüşlü ve çok katmanlı biçimde gerçekleştiği; aynı anda farklı düzlemlerde farklı hızlarda seyrettiği göz önünde bulundurulmalıdır.</p>
+
+          <p>Ayrıca, kronoloji çalışmaları kaçınılmaz olarak (i) seçim (hangi olayın dahil edileceği), (ii) vurgu (hangi olayın öne çıkarılacağı), (iii) zaman algısı (başlangıç ve bitiş noktalarının tanımı) gibi normatif tercihler içerir. Bu da kronolojinin, belirli bir anlatının ya da bakış açısının yansıması olabileceğini gösterir. Buna ek olarak, farklı toplumsal grupların ve aktörlerin zaman algıları ve tarihsel hafızaları farklılaşır. Dolayısıyla, yekpare bir "barış süreci kronolojisi" oluşturmak yerine, farklı anlatıları ve bakış açılarını içerecek çoğulcu bir yaklaşım benimsemek daha kapsayıcı bir yöntem olacaktır.</p>
+
+          <p>Bu raporda kullanılan kronolojik yapı da bu eleştirel bilinçle tasarlandı ve kronolojiyi tam da yukarıdaki gerekçelerle lineer olmayan bir akış olarak ele aldı. Çalışma boyunca, sürecin dalgalı doğası yansıtılmaya çalışıldı, farklı anlatıların görünürlüğüne önem verildi, zaman içindeki kopuşlar ve kırılma noktaları özel olarak vurgulandı. Amaç, salt doğrusal bir başarı veya başarısızlık çizelgesi sunmak değil; sürecin karmaşıklığını ve çok boyutluluğunu anlamaya katkıda bulunan dinamik ve eleştirel bir zaman kurgusu ortaya koymak.</p>
+
+          <p>Barış inşası süreçlerine dair kronoloji çalışmaları çoğu zaman devletler/aktörler arası görüşmelere, ateşkes ilanlarına ya da siyasi gelişmelere odaklanır. Oysa barış, yalnızca diplomatik masalarda alınan kararlarla değil, aynı zamanda sahada yürütülen toplumsal çabalarla şekillenen çok boyutlu bir süreçtir. Bu noktada sivil alandaki faaliyetlerin kronolojilere dahil edilmesi, sürecin bütüncül bir biçimde anlaşılabilmesi açısından kritik öneme sahiptir. Zira sivil alanın üstlendiği işlevler, kimi zaman resmi aktörlerin tıkandığı noktalarda süreci ilerletmiş, kimi zaman da toplumun barışa hazırlanması için gerekli zemini oluşturmuştur. Bu katkılar kayda geçirilmediğinde, barışın nasıl inşa edildiğine ilişkin analizler eksik kalır; süreç yalnızca "resmî" gelişmelerin gölgesinde okunur.</p>
+
+          <p>Yukarıda sunulan çerçeveden hareketle, yalnızca resmi aktörlerin girişimlerini değil, aynı zamanda sivil alanın farklı düzlemlerde yürüttükleri faaliyetleri de not ederek Ekim 2024'te başlayan sürecin daha kapsayıcı ve çok boyutlu bir şekilde kayıt altına alınmasına katkı sunmayı hedefliyoruz. Tam da bu sebeple, sürecin öznesi olan ve bu alanda çalışma yürüten paydaşlarımızı bu hafızalaştırma çalışmasının bir parçası olmaya davet ediyoruz. Bu sürece ilişkin yürütülen ya da planlanan ancak radarımıza girmemiş olabileceğini düşündüğünüz etkinliklerin, girişimlerin ve faaliyetlerin bizlerle paylaşılması, okumakta olduğunuz çalışmanın kapsam ve derinliğini önemli ölçüde artıracaktır. Paylaştığınız içerikleri, yukarıda belirtilen yöntemsel çerçeve doğrultusunda titizlikle değerlendirip bu akışa dahil ederek sürecin daha bütüncül bir biçimde belgelenmesine katkı sunmayı umut ediyoruz.</p>
+
+          <p class="about-closing">Bu vesileyle, sürecin çok boyutlu bir şekilde kayıt altına alınmasına eşlik edecek her türlü katkıyı memnuniyetle karşılayacağımızı vurgulamak isteriz. Sizleri barışın hafızasını öznelerin gözüyle kaydetmeye davet ediyoruz.</p>
+        </article>
+      </div>
+    </div>
   </div>
   <script src="app.js"></script>
 </body>
